@@ -78,7 +78,7 @@ export default function ProductList() {
 									? `text-blue-600 dark:text-blue-400 font-semibold ${isCollapsed ? 'drop-shadow-md group-hover:drop-shadow-none' : ''}`
 									: `text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 ${
 											isCollapsed
-												? 'text-blue-600 dark:text-blue-400 font-semibold drop-shadow-md group-hover:drop-shadow-none group-hover:text-gray-500 group-hover:font-medium'
+												? 'text-blue-600 dark:text-blue-400 font-semibold drop-shadow-md group-hover:drop-shadow-none group-hover:text-gray-500 group-hover:font-semibold'
 												: 'font-medium'
 										}`
 							}`}

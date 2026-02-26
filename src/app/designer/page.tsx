@@ -4,7 +4,7 @@ import WorkspaceCanvas from '@/components/designer/WorkspaceCanvas';
 
 export default function DesignerPage() {
 	return (
-		<div className='flex flex-col h-[calc(100vh-64px)] overflow-hidden relative'>
+		<div className='flex flex-col h-screen overflow-hidden relative'>
 			<ShoppingList />
 			<WorkspaceCanvas />
 			<ProductList />

@@ -2,19 +2,82 @@
 
 import { useWorkspaceStore } from '@/store/workspace';
 import { WorkspaceItem } from '@/types';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/components/Icon';
-import { RotateCw, X, Maximize2, Info, Minimize2 } from 'lucide-react';
+import { RotateCw, X, Maximize2, Info, Minimize2, Grid, Trash2, Image as ImageIcon } from 'lucide-react';
 
 export default function WorkspaceCanvas() {
-	const { items, selectedItemId, selectItem, updateItemPosition, removeItem, rotateItem, scaleItem, isFullscreen, toggleFullscreen } =
-		useWorkspaceStore();
+	const {
+		items,
+		selectedItemId,
+		selectItem,
+		updateItemPosition,
+		removeItem,
+		rotateItem,
+		scaleItem,
+		isFullscreen,
+		toggleFullscreen,
+		clearWorkspace,
+	} = useWorkspaceStore();
 	const canvasRef = useRef<HTMLDivElement>(null);
 	const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
 	const [resizingItemId, setResizingItemId] = useState<string | null>(null);
 	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 	const [resizeStart, setResizeStart] = useState({ x: 0, scale: 1 });
 	const [showControls, setShowControls] = useState(true);
+	const [showGrid, setShowGrid] = useState(false);
+	const [bgIndex, setBgIndex] = useState(0);
+
+	const backgrounds = [
+		'/images/setup-clean-1.jpeg',
+		'/images/setup-clean.jpeg',
+		'linear-gradient(to bottom right, #e2e8f0, #cbd5e1)', // Solid/Gradient fallback
+	];
+
+	const handleClearWorkspace = () => {
+		if (window.confirm('Are you sure you want to clear the entire workspace?')) {
+			clearWorkspace();
+		}
+	};
+
+	// Keyboard Shortcuts
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (!selectedItemId) return;
+
+			const step = e.shiftKey ? 10 : 1; // Shift + Arrow for faster movement
+
+			switch (e.key) {
+				case 'Delete':
+				case 'Backspace':
+					removeItem(selectedItemId);
+					break;
+				case 'ArrowUp':
+					e.preventDefault();
+					updateItemPosition(selectedItemId, { x: 0, y: -step }, true); // Pass relative change
+					break;
+				case 'ArrowDown':
+					e.preventDefault();
+					updateItemPosition(selectedItemId, { x: 0, y: step }, true);
+					break;
+				case 'ArrowLeft':
+					e.preventDefault();
+					updateItemPosition(selectedItemId, { x: -step, y: 0 }, true);
+					break;
+				case 'ArrowRight':
+					e.preventDefault();
+					updateItemPosition(selectedItemId, { x: step, y: 0 }, true);
+					break;
+				case 'r':
+				case 'R':
+					rotateItem(selectedItemId, 45);
+					break;
+			}
+		};
+
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [selectedItemId, removeItem, updateItemPosition, rotateItem]);
 
 	const handleMouseDown = (e: React.MouseEvent, item: WorkspaceItem) => {
 		e.stopPropagation();
@@ -78,9 +141,11 @@ export default function WorkspaceCanvas() {
 		>
 			{/* Background Room Image */}
 			<div
-				className='absolute inset-0 pointer-events-none'
+				className='absolute inset-0 pointer-events-none transition-all duration-500 ease-in-out'
 				style={{
-					backgroundImage: "url('/images/setup-clean-1.jpeg')",
+					backgroundImage: backgrounds[bgIndex].startsWith('linear-gradient')
+						? backgrounds[bgIndex]
+						: `url('${backgrounds[bgIndex]}')`,
 					backgroundSize: 'cover',
 					backgroundPosition: 'center',
 				}}
@@ -89,37 +154,107 @@ export default function WorkspaceCanvas() {
 			{/* Overlay for better visibility */}
 			<div className='absolute inset-0 bg-white/30 pointer-events-none'></div>
 
-			{/* Fullscreen Toggle Button */}
-			<button
-				onClick={toggleFullscreen}
-				className={`fixed z-30 w-10 h-10 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-all duration-300 text-gray-700 dark:text-gray-200 ${
-					isFullscreen ? 'top-4 right-4' : 'top-20 right-16'
+			{/* Grid Overlay */}
+			{showGrid && (
+				<div
+					className='absolute inset-0 pointer-events-none z-0'
+					style={{
+						backgroundImage:
+							'linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)',
+						backgroundSize: '40px 40px',
+					}}
+				/>
+			)}
+
+			{/* Toolbar (Fullscreen, Grid, Background, Clear) */}
+			<div
+				className={`fixed z-30 flex flex-col gap-3 transition-all duration-300 ${
+					isFullscreen ? 'top-4 right-4' : 'top-20 right-6'
 				}`}
-				title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
 			>
-				{isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-			</button>
+				{/* Fullscreen Toggle Button */}
+				<button
+					onClick={toggleFullscreen}
+					className='w-10 h-10 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-all duration-300 text-gray-700 dark:text-gray-200'
+					title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+				>
+					{isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+				</button>
+
+				{/* Grid Toggle Button */}
+				<button
+					onClick={() => setShowGrid(!showGrid)}
+					className={`w-10 h-10 flex items-center justify-center backdrop-blur-md rounded-full shadow-lg border hover:scale-105 transition-all duration-300 ${
+						showGrid
+							? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 border-transparent'
+							: 'bg-white/70 dark:bg-gray-900/70 text-gray-700 dark:text-gray-200 border-white/20 dark:border-gray-700'
+					}`}
+					title={showGrid ? 'Hide Grid' : 'Show Grid'}
+				>
+					<Grid size={20} />
+				</button>
+
+				{/* Background Toggle Button */}
+				<button
+					onClick={() => setBgIndex((prev) => (prev + 1) % backgrounds.length)}
+					className='w-10 h-10 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-all duration-300 text-gray-700 dark:text-gray-200'
+					title='Change Background'
+				>
+					<ImageIcon size={20} />
+				</button>
+
+				{/* Clear Workspace Button */}
+				{items.length > 0 && (
+					<button
+						onClick={handleClearWorkspace}
+						className='w-10 h-10 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-all duration-300 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-transparent'
+						title='Clear Workspace'
+					>
+						<Trash2 size={20} />
+					</button>
+				)}
+			</div>
 
 			{/* Controls Overlay */}
 			{!isFullscreen &&
 				(showControls ? (
-					<div className='absolute top-4 left-4 z-10 bg-white/70 dark:bg-gray-900/70 p-4 rounded-xl shadow-lg backdrop-blur-md text-sm border border-white/20 dark:border-gray-700 animate-in fade-in slide-in-from-top-2 duration-200 w-64'>
+					<div className='absolute top-20 left-4 z-10 bg-white/70 dark:bg-gray-900/70 p-4 rounded-xl shadow-lg backdrop-blur-md text-sm border border-white/20 dark:border-gray-700 animate-in fade-in slide-in-from-top-2 duration-200 w-64'>
 						<div className='flex justify-between items-start mb-2'>
-							<p className='font-semibold text-gray-800 dark:text-white'>Controls</p>
+							<p className='font-semibold text-gray-800 dark:text-white flex items-center gap-2'>
+								<Info size={16} /> Controls
+							</p>
 							<button
 								onClick={() => setShowControls(false)}
-								className='text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors pointer-events-auto'
+								className='text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors'
 							>
 								<X size={16} />
 							</button>
 						</div>
-						<div className='space-y-1 text-gray-600 dark:text-gray-300'>
-							<p>• Drag items to move</p>
-							<p>• Click to select/rotate/remove</p>
-						</div>
+						<ul className='space-y-2 text-xs text-gray-600 dark:text-gray-300'>
+							<li className='flex items-center justify-between'>
+								<span>Move Item</span>
+								<span className='font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded'>Drag</span>
+							</li>
+							<li className='flex items-center justify-between'>
+								<span>Precision Move</span>
+								<span className='font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded'>Arrows</span>
+							</li>
+							<li className='flex items-center justify-between'>
+								<span>Fast Move</span>
+								<span className='font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded'>Shift+Arrow</span>
+							</li>
+							<li className='flex items-center justify-between'>
+								<span>Rotate 45°</span>
+								<span className='font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded'>R</span>
+							</li>
+							<li className='flex items-center justify-between'>
+								<span>Delete Item</span>
+								<span className='font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded'>Del / Bksp</span>
+							</li>
+						</ul>
 						<div className='mt-3 pt-3 border-t border-gray-200/50 dark:border-gray-700/50'>
 							<p className='text-xs text-gray-500 dark:text-gray-400 mb-1'>Selected Item:</p>
-							<p className='font-medium text-gray-800 dark:text-white truncate'>
+							<p className='font-medium text-gray-800 dark:text-white truncate text-sm'>
 								{items.find((i) => i.id === selectedItemId)?.product.name || 'None'}
 							</p>
 						</div>
@@ -127,7 +262,7 @@ export default function WorkspaceCanvas() {
 				) : (
 					<button
 						onClick={() => setShowControls(true)}
-						className='absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-md shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-transform text-gray-700 dark:text-gray-200'
+						className='absolute top-20 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-md shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-transform text-gray-700 dark:text-gray-200'
 						title='Show Controls'
 					>
 						<Info size={20} />

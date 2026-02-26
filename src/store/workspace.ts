@@ -5,9 +5,11 @@ interface WorkspaceState {
 	items: WorkspaceItem[];
 	selectedItemId: string | null;
 	isFullscreen: boolean;
+	isShoppingListOpen: boolean;
+	setShoppingListOpen: (isOpen: boolean) => void;
 	addItem: (product: Product) => void;
 	removeItem: (itemId: string) => void;
-	updateItemPosition: (itemId: string, position: { x: number; y: number }) => void;
+	updateItemPosition: (itemId: string, position: { x: number; y: number }, isRelative?: boolean) => void;
 	rotateItem: (itemId: string, angle: number) => void;
 	scaleItem: (itemId: string, scale: number) => void;
 	selectItem: (itemId: string | null) => void;
@@ -19,6 +21,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 	items: [],
 	selectedItemId: null,
 	isFullscreen: false,
+	isShoppingListOpen: false,
+	setShoppingListOpen: (isOpen) => set({ isShoppingListOpen: isOpen }),
 	addItem: (product) =>
 		set((state) => {
 			// Allow multiple items of any category
@@ -44,9 +48,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 			items: state.items.filter((item) => item.id !== itemId),
 			selectedItemId: state.selectedItemId === itemId ? null : state.selectedItemId,
 		})),
-	updateItemPosition: (itemId, position) =>
+	updateItemPosition: (itemId, position, isRelative = false) =>
 		set((state) => ({
-			items: state.items.map((item) => (item.id === itemId ? { ...item, position: { ...item.position, ...position } } : item)),
+			items: state.items.map((item) =>
+				item.id === itemId
+					? {
+							...item,
+							position: isRelative ? { x: item.position.x + position.x, y: item.position.y + position.y } : position,
+						}
+					: item,
+			),
 		})),
 	rotateItem: (itemId, angle) =>
 		set((state) => ({

@@ -5,8 +5,7 @@ import { ShoppingCart, X, Trash2, Plus, Minus } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
 export default function ShoppingList() {
-	const { items, removeItem, addItem, isFullscreen } = useWorkspaceStore();
-	const [isOpen, setIsOpen] = useState(false);
+	const { items, removeItem, addItem, isFullscreen, isShoppingListOpen, setShoppingListOpen } = useWorkspaceStore();
 
 	// Group items by product ID to count quantities
 	const groupedItems = useMemo(() => {
@@ -35,31 +34,15 @@ export default function ShoppingList() {
 
 	return (
 		<>
-			{/* Toggle Button */}
-			<button
-				onClick={() => setIsOpen(true)}
-				className='fixed top-20 right-4 z-30 w-10 h-10 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-transform group'
-			>
-				<div className='relative'>
-					<ShoppingCart size={20} className='text-gray-700 dark:text-gray-200' />
-					{items.length > 0 && (
-						<span className='absolute -top-2 -right-2 bg-blue-600 text-white text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full'>
-							{items.length}
-						</span>
-					)}
-				</div>
-				<span className='absolute right-full mr-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none'>
-					View List
-				</span>
-			</button>
-
 			{/* Drawer Overlay */}
-			{isOpen && <div className='fixed inset-0 bg-black/20 backdrop-blur-sm z-40' onClick={() => setIsOpen(false)} />}
+			{isShoppingListOpen && (
+				<div className='fixed inset-0 bg-black/20 backdrop-blur-sm z-40' onClick={() => setShoppingListOpen(false)} />
+			)}
 
 			{/* Drawer Content */}
 			<div
 				className={`fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out z-50 flex flex-col ${
-					isOpen ? 'translate-x-0' : 'translate-x-full'
+					isShoppingListOpen ? 'translate-x-0' : 'translate-x-full'
 				}`}
 			>
 				<div className='p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50'>
@@ -68,7 +51,7 @@ export default function ShoppingList() {
 						Shopping List
 					</h2>
 					<button
-						onClick={() => setIsOpen(false)}
+						onClick={() => setShoppingListOpen(false)}
 						className='p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors'
 					>
 						<X size={20} />
