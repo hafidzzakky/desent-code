@@ -3,9 +3,11 @@
 import { useWorkspaceStore } from '@/store/workspace';
 import { ShoppingCart, X, Trash2, Plus, Minus } from 'lucide-react';
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function ShoppingList() {
 	const { items, removeItem, addItem, isFullscreen, isShoppingListOpen, setShoppingListOpen } = useWorkspaceStore();
+	const router = useRouter();
 
 	// Group items by product ID to count quantities
 	const groupedItems = useMemo(() => {
@@ -145,7 +147,10 @@ export default function ShoppingList() {
 					<button
 						className='w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed'
 						disabled={items.length === 0}
-						onClick={() => alert('Proceeding to checkout! (This is a demo)')}
+						onClick={() => {
+							setShoppingListOpen(false);
+							router.push('/checkout');
+						}}
 					>
 						Checkout Now
 					</button>

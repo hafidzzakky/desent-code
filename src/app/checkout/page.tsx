@@ -6,15 +6,13 @@ import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/Icon';
 
 export default function CheckoutPage() {
-	const { items, clearWorkspace } = useWorkspaceStore();
+	const { items } = useWorkspaceStore();
 	const router = useRouter();
 
 	const total = items.reduce((sum, item) => sum + item.product.price, 0);
 
-	const handleRent = () => {
-		alert('Thank you for your order! Your workspace is on its way.');
-		clearWorkspace();
-		router.push('/');
+	const handleProceedToPayment = () => {
+		router.push('/payment');
 	};
 
 	if (items.length === 0) {
@@ -75,10 +73,10 @@ export default function CheckoutPage() {
 					← Back to Designer
 				</Link>
 				<button
-					onClick={handleRent}
-					className='bg-green-600 text-white px-8 py-3 rounded-full text-lg font-bold hover:bg-green-700 transition-colors shadow-lg'
+					onClick={handleProceedToPayment}
+					className='bg-green-600 text-white px-8 py-3 rounded-full text-lg font-bold hover:bg-green-700 transition-colors shadow-lg flex items-center gap-2'
 				>
-					Rent Your Setup
+					Proceed to Payment
 				</button>
 			</div>
 		</div>

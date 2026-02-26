@@ -21,10 +21,10 @@ export default function Header() {
 					: 'sticky top-0 bg-white/70 dark:bg-black/70 backdrop-blur-md border-b border-white/20 dark:border-gray-800'
 			}`}
 		>
-			<Link href='/' className='text-xl font-bold tracking-tight'>
-				monis.rent
+			<Link href='/' className='text-xl font-extrabold tracking-tight'>
+				Monis
 			</Link>
-			<nav className='flex gap-6 text-sm font-medium items-center'>
+			<nav className='flex gap-6 text-sm font-semibold cursor-pointer items-center'>
 				<Link
 					href='/designer'
 					className={`hover:text-blue-600 transition-colors ${pathname === '/designer' ? 'text-blue-500' : ''}`}
@@ -34,9 +34,9 @@ export default function Header() {
 				{isDesignerPage ? (
 					<button
 						onClick={() => setShoppingListOpen(true)}
-						className='hover:text-blue-600 transition-colors relative flex items-center gap-1'
+						className='hover:text-blue-600 transition-colors relative flex items-center gap-1 cursor-pointer'
 					>
-						Checkout
+						Cart
 						{items.length > 0 && (
 							<span className='bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center'>
 								{items.length}
@@ -50,7 +50,7 @@ export default function Header() {
 							pathname === '/checkout' ? 'text-blue-500' : ''
 						}`}
 					>
-						Checkout
+						Cart
 						{items.length > 0 && (
 							<span className='bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center'>
 								{items.length}

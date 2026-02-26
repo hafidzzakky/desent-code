@@ -26,10 +26,34 @@ export interface WorkspaceItem {
 
 export interface WorkspaceState {
 	items: WorkspaceItem[];
-	selectedItemId: string | null;
+	selectedItemIds: string[];
+	isFullscreen: boolean;
+	isShoppingListOpen: boolean;
+	zoomScale: number;
+
+	setShoppingListOpen: (isOpen: boolean) => void;
+	setZoomScale: (scale: number) => void;
+	zoomIn: () => void;
+	zoomOut: () => void;
+	resetZoom: () => void;
+
 	addItem: (product: Product) => void;
 	removeItem: (itemId: string) => void;
+	removeSelected: () => void;
+
 	updateItemPosition: (itemId: string, position: { x: number; y: number }) => void;
-	selectItem: (itemId: string | null) => void;
+	moveSelectedItems: (delta: { x: number; y: number }) => void;
+
+	rotateItem: (itemId: string, angle: number) => void;
+	scaleItem: (itemId: string, scale: number) => void;
+
+	selectItem: (itemId: string | null, multi?: boolean) => void;
+	toggleSelection: (itemId: string) => void;
+	deselectAll: () => void;
+
+	toggleFullscreen: () => void;
 	clearWorkspace: () => void;
+
+	undo: () => void;
+	redo: () => void;
 }

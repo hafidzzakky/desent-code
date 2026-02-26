@@ -4,25 +4,46 @@ import { useWorkspaceStore } from '@/store/workspace';
 import { WorkspaceItem } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/components/Icon';
-import { RotateCw, X, Maximize2, Info, Minimize2, Grid, Trash2, Image as ImageIcon } from 'lucide-react';
+import {
+	RotateCw,
+	X,
+	Maximize2,
+	Info,
+	Minimize2,
+	Grid,
+	Trash2,
+	Image as ImageIcon,
+	Undo2,
+	Redo2,
+	ZoomIn,
+	ZoomOut,
+} from 'lucide-react';
 
 export default function WorkspaceCanvas() {
 	const {
 		items,
-		selectedItemId,
+		selectedItemIds,
 		selectItem,
-		updateItemPosition,
-		removeItem,
+		moveSelectedItems,
+		removeSelected,
 		rotateItem,
 		scaleItem,
 		isFullscreen,
 		toggleFullscreen,
 		clearWorkspace,
+		undo,
+		redo,
+		past,
+		future,
+		zoomScale,
+		setZoomScale,
+		zoomIn,
+		zoomOut,
 	} = useWorkspaceStore();
 	const canvasRef = useRef<HTMLDivElement>(null);
-	const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+	const [isDragging, setIsDragging] = useState(false);
 	const [resizingItemId, setResizingItemId] = useState<string | null>(null);
-	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+	const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
 	const [resizeStart, setResizeStart] = useState({ x: 0, scale: 1 });
 	const [showControls, setShowControls] = useState(true);
 	const [showGrid, setShowGrid] = useState(false);
@@ -43,54 +64,73 @@ export default function WorkspaceCanvas() {
 	// Keyboard Shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if (!selectedItemId) return;
+			// Undo/Redo Shortcuts
+			if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+				e.preventDefault();
+				if (e.shiftKey) {
+					redo();
+				} else {
+					undo();
+				}
+				return;
+			}
+			if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+				e.preventDefault();
+				redo();
+				return;
+			}
+
+			if (selectedItemIds.length === 0) return;
 
 			const step = e.shiftKey ? 10 : 1; // Shift + Arrow for faster movement
 
 			switch (e.key) {
 				case 'Delete':
 				case 'Backspace':
-					removeItem(selectedItemId);
+					removeSelected();
 					break;
 				case 'ArrowUp':
 					e.preventDefault();
-					updateItemPosition(selectedItemId, { x: 0, y: -step }, true); // Pass relative change
+					moveSelectedItems({ x: 0, y: -step });
 					break;
 				case 'ArrowDown':
 					e.preventDefault();
-					updateItemPosition(selectedItemId, { x: 0, y: step }, true);
+					moveSelectedItems({ x: 0, y: step });
 					break;
 				case 'ArrowLeft':
 					e.preventDefault();
-					updateItemPosition(selectedItemId, { x: -step, y: 0 }, true);
+					moveSelectedItems({ x: -step, y: 0 });
 					break;
 				case 'ArrowRight':
 					e.preventDefault();
-					updateItemPosition(selectedItemId, { x: step, y: 0 }, true);
+					moveSelectedItems({ x: step, y: 0 });
 					break;
 				case 'r':
 				case 'R':
-					rotateItem(selectedItemId, 45);
+					if (selectedItemIds.length === 1) rotateItem(selectedItemIds[0], 45);
 					break;
 			}
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [selectedItemId, removeItem, updateItemPosition, rotateItem]);
+	}, [selectedItemIds, removeSelected, moveSelectedItems, rotateItem, undo, redo]);
 
 	const handleMouseDown = (e: React.MouseEvent, item: WorkspaceItem) => {
 		e.stopPropagation();
 		e.preventDefault(); // Prevent text selection and native drag
-		selectItem(item.id);
-		setDraggingItemId(item.id);
+		
+		const isMulti = e.shiftKey || e.ctrlKey || e.metaKey;
+		const isAlreadySelected = selectedItemIds.includes(item.id);
 
-		// Calculate offset: mouse position relative to item position
-		// This ensures the item doesn't jump when we start dragging
-		setDragOffset({
-			x: e.clientX - item.position.x,
-			y: e.clientY - item.position.y,
-		});
+		if (isMulti) {
+			selectItem(item.id, true);
+		} else if (!isAlreadySelected) {
+			selectItem(item.id, false);
+		}
+		
+		setIsDragging(true);
+		setLastMousePos({ x: e.clientX, y: e.clientY });
 	};
 
 	const handleResizeStart = (e: React.MouseEvent, item: WorkspaceItem) => {
@@ -101,12 +141,12 @@ export default function WorkspaceCanvas() {
 	};
 
 	const handleMouseMove = (e: React.MouseEvent) => {
-		if (draggingItemId) {
-			// Calculate new position using the offset
-			const x = e.clientX - dragOffset.x;
-			const y = e.clientY - dragOffset.y;
+		if (isDragging) {
+			const deltaX = (e.clientX - lastMousePos.x) / zoomScale;
+			const deltaY = (e.clientY - lastMousePos.y) / zoomScale;
 
-			updateItemPosition(draggingItemId, { x, y });
+			moveSelectedItems({ x: deltaX, y: deltaY });
+			setLastMousePos({ x: e.clientX, y: e.clientY });
 		} else if (resizingItemId) {
 			e.preventDefault();
 			const deltaX = e.clientX - resizeStart.x;
@@ -118,7 +158,7 @@ export default function WorkspaceCanvas() {
 	};
 
 	const handleMouseUp = () => {
-		setDraggingItemId(null);
+		setIsDragging(false);
 		setResizingItemId(null);
 	};
 
@@ -139,9 +179,20 @@ export default function WorkspaceCanvas() {
 			onMouseUp={handleMouseUp}
 			onClick={handleCanvasClick}
 		>
-			{/* Background Room Image */}
+			{/* Scalable Content */}
 			<div
-				className='absolute inset-0 pointer-events-none transition-all duration-500 ease-in-out'
+				style={{
+					transform: `scale(${zoomScale})`,
+					transformOrigin: '0 0',
+					width: '100%',
+					height: '100%',
+					position: 'absolute',
+					inset: 0,
+				}}
+			>
+				{/* Background Room Image */}
+				<div
+					className='absolute inset-0 pointer-events-none transition-all duration-500 ease-in-out'
 				style={{
 					backgroundImage: backgrounds[bgIndex].startsWith('linear-gradient')
 						? backgrounds[bgIndex]
@@ -166,12 +217,124 @@ export default function WorkspaceCanvas() {
 				/>
 			)}
 
+			{items.map((item) => {
+				const isSelected = selectedItemIds.includes(item.id);
+				const showItemControls = isSelected && selectedItemIds.length === 1;
+
+				return (
+					<div
+						key={item.id}
+						className={`absolute cursor-move ${isSelected ? 'z-20' : 'z-10'}`}
+						style={{
+							left: item.position.x,
+							top: item.position.y,
+							width: (item.product.dimensions?.width ? item.product.dimensions.width * 3 : 150) * (item.scale || 1), // Increased scaling for better visibility
+							height: (item.product.dimensions?.depth ? item.product.dimensions.depth * 3 : 150) * (item.scale || 1),
+							transform: `translate(-50%, -50%) rotate(${item.rotation || 0}deg)`,
+						}}
+						onMouseDown={(e) => handleMouseDown(e, item)}
+						onClick={(e) => e.stopPropagation()}
+					>
+						{/* Visual Representation */}
+						<div
+							className={`w-full h-full flex flex-col items-center justify-center relative group ${
+								isSelected ? 'ring-2 ring-blue-500 bg-blue-50/20' : 'hover:ring-1 hover:ring-gray-300'
+							}`}
+						>
+							{/* Render Image */}
+							<div className='w-full h-full pointer-events-none relative'>
+								<img
+									src={item.product.image}
+									alt={item.product.name}
+									className='w-full h-full object-contain drop-shadow-lg'
+									draggable={false}
+								/>
+							</div>
+						</div>
+
+						{/* Controls for Selected Item */}
+						{showItemControls && (
+							<>
+								<button
+									className='absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 z-30'
+									onClick={(e) => {
+										e.stopPropagation();
+										removeSelected();
+									}}
+									title='Remove'
+								>
+									<X size={14} />
+								</button>
+								<button
+									className='absolute -bottom-8 left-1/2 -translate-x-1/2 bg-blue-500 text-white rounded-full p-1.5 shadow-sm hover:bg-blue-600 z-30 flex gap-1 items-center px-3 text-xs'
+									onClick={(e) => handleRotate(e, item.id)}
+									title='Rotate 45°'
+								>
+									<RotateCw size={14} /> Rotate
+								</button>
+								<button
+									className='absolute -bottom-3 -right-3 bg-white text-gray-700 rounded-full p-1 shadow-sm hover:bg-gray-100 z-30 border border-gray-200 cursor-ew-resize'
+									onMouseDown={(e) => handleResizeStart(e, item)}
+									onClick={(e) => e.stopPropagation()}
+									title='Drag to Resize'
+								>
+									<Maximize2 size={14} className='rotate-90' />
+								</button>
+							</>
+						)}
+					</div>
+				);
+			})}
+			</div>
+
 			{/* Toolbar (Fullscreen, Grid, Background, Clear) */}
 			<div
 				className={`fixed z-30 flex flex-col gap-3 transition-all duration-300 ${
 					isFullscreen ? 'top-4 right-4' : 'top-20 right-6'
 				}`}
 			>
+				{/* Undo Button */}
+				<button
+					onClick={undo}
+					disabled={past.length === 0}
+					className={`w-10 h-10 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-all duration-300 text-gray-700 dark:text-gray-200 ${
+						past.length === 0 ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''
+					}`}
+					title='Undo (Ctrl+Z)'
+				>
+					<Undo2 size={20} />
+				</button>
+
+				{/* Redo Button */}
+				<button
+					onClick={redo}
+					disabled={future.length === 0}
+					className={`w-10 h-10 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-all duration-300 text-gray-700 dark:text-gray-200 ${
+						future.length === 0 ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''
+					}`}
+					title='Redo (Ctrl+Y)'
+				>
+					<Redo2 size={20} />
+				</button>
+
+				{/* Zoom In Button */}
+				<button
+					onClick={zoomIn}
+					className='w-10 h-10 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-all duration-300 text-gray-700 dark:text-gray-200'
+					title={`Zoom In (${Math.round(zoomScale * 100)}%)`}
+				>
+					<ZoomIn size={20} />
+				</button>
+
+				{/* Zoom Out Button */}
+				<button
+					onClick={zoomOut}
+					className='w-10 h-10 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 dark:border-gray-700 hover:scale-105 transition-all duration-300 text-gray-700 dark:text-gray-200'
+					title={`Zoom Out (${Math.round(zoomScale * 100)}%)`}
+				>
+					<ZoomOut size={20} />
+				</button>
+
 				{/* Fullscreen Toggle Button */}
 				<button
 					onClick={toggleFullscreen}
@@ -255,7 +418,9 @@ export default function WorkspaceCanvas() {
 						<div className='mt-3 pt-3 border-t border-gray-200/50 dark:border-gray-700/50'>
 							<p className='text-xs text-gray-500 dark:text-gray-400 mb-1'>Selected Item:</p>
 							<p className='font-medium text-gray-800 dark:text-white truncate text-sm'>
-								{items.find((i) => i.id === selectedItemId)?.product.name || 'None'}
+								{selectedItemIds.length > 1
+									? `${selectedItemIds.length} Items Selected`
+									: items.find((i) => i.id === selectedItemIds[0])?.product.name || 'None'}
 							</p>
 						</div>
 					</div>
@@ -268,70 +433,6 @@ export default function WorkspaceCanvas() {
 						<Info size={20} />
 					</button>
 				))}
-
-			{items.map((item) => (
-				<div
-					key={item.id}
-					className={`absolute cursor-move ${selectedItemId === item.id ? 'z-20' : 'z-10'}`}
-					style={{
-						left: item.position.x,
-						top: item.position.y,
-						width: (item.product.dimensions?.width ? item.product.dimensions.width * 3 : 150) * (item.scale || 1), // Increased scaling for better visibility
-						height: (item.product.dimensions?.depth ? item.product.dimensions.depth * 3 : 150) * (item.scale || 1),
-						transform: `translate(-50%, -50%) rotate(${item.rotation || 0}deg)`,
-					}}
-					onMouseDown={(e) => handleMouseDown(e, item)}
-					onClick={(e) => e.stopPropagation()}
-				>
-					{/* Visual Representation */}
-					<div
-						className={`w-full h-full flex flex-col items-center justify-center relative group ${
-							selectedItemId === item.id ? 'ring-2 ring-blue-500 bg-blue-50/20' : 'hover:ring-1 hover:ring-gray-300'
-						}`}
-					>
-						{/* Render Image */}
-						<div className='w-full h-full pointer-events-none relative'>
-							<img
-								src={item.product.image}
-								alt={item.product.name}
-								className='w-full h-full object-contain drop-shadow-lg'
-								draggable={false}
-							/>
-						</div>
-					</div>
-
-					{/* Controls for Selected Item */}
-					{selectedItemId === item.id && (
-						<>
-							<button
-								className='absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 z-30'
-								onClick={(e) => {
-									e.stopPropagation();
-									removeItem(item.id);
-								}}
-								title='Remove'
-							>
-								<X size={14} />
-							</button>
-							<button
-								className='absolute -bottom-8 left-1/2 -translate-x-1/2 bg-blue-500 text-white rounded-full p-1.5 shadow-sm hover:bg-blue-600 z-30 flex gap-1 items-center px-3 text-xs'
-								onClick={(e) => handleRotate(e, item.id)}
-								title='Rotate 45°'
-							>
-								<RotateCw size={14} /> Rotate
-							</button>
-							<button
-								className='absolute -bottom-3 -right-3 bg-white text-gray-700 rounded-full p-1 shadow-sm hover:bg-gray-100 z-30 border border-gray-200 cursor-ew-resize'
-								onMouseDown={(e) => handleResizeStart(e, item)}
-								onClick={(e) => e.stopPropagation()}
-								title='Drag to Resize'
-							>
-								<Maximize2 size={14} className='rotate-90' />
-							</button>
-						</>
-					)}
-				</div>
-			))}
 		</div>
 	);
 }

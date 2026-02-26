@@ -50,7 +50,7 @@ export default function ProductList() {
 		<div
 			ref={containerRef}
 			onClick={handleContainerClick}
-			className={`absolute bottom-0 left-0 right-0 w-full z-20 flex flex-col transition-all duration-300 ease-in-out group ${
+			className={`absolute bottom-0 left-0 right-0 w-full ${isCollapsed ? 'z-20' : 'z-40'} flex flex-col transition-all duration-300 ease-in-out group ${
 				isCollapsed
 					? 'h-12 bg-white/10 dark:bg-gray-900/10 hover:bg-white dark:hover:bg-gray-900 backdrop-blur-[2px] hover:backdrop-blur-none border-t border-transparent hover:border-gray-200 dark:hover:border-gray-800 cursor-pointer'
 					: `${isExpandedHeight ? 'h-3/4' : 'h-80'} bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]`
@@ -73,19 +73,33 @@ export default function ProductList() {
 								setActiveTab(tab.id);
 								if (isCollapsed) setIsCollapsed(false);
 							}}
+							// className={`px-4 py-3 text-sm transition-colors relative ${
+							// 	activeTab === tab.id
+							// 		? `text-black dark:text-white font-bold ${isCollapsed ? 'drop-shadow-md group-hover:drop-shadow-none' : ''}`
+							// 		: `text-gray-900 hover:text-black dark:text-gray-200 dark:hover:text-white ${
+							// 				isCollapsed
+							// 					? 'text-gray-900 dark:text-white font-semibold drop-shadow-md group-hover:drop-shadow-none group-hover:text-gray-900 group-hover:font-semibold'
+							// 					: 'font-medium'
+							// 			}`
+							// }`}
 							className={`px-4 py-3 text-sm transition-colors relative ${
 								activeTab === tab.id
-									? `text-blue-600 dark:text-blue-400 font-semibold ${isCollapsed ? 'drop-shadow-md group-hover:drop-shadow-none' : ''}`
-									: `text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 ${
+									? `text-black dark:text-blue-600 font-bold  ${isCollapsed ? 'drop-shadow-md group-hover:drop-shadow-none' : 'dark:text-white '}`
+									: `text-gray-900 hover:text-black dark:text-gray-400 dark:hover:text-gray-200 ${
 											isCollapsed
 												? 'text-blue-600 dark:text-blue-400 font-semibold drop-shadow-md group-hover:drop-shadow-none group-hover:text-gray-500 group-hover:font-semibold'
 												: 'font-medium'
 										}`
 							}`}
 						>
-							{tab.label}
+							<span
+								className={`${isCollapsed && activeTab === tab.id ? 'bg-gray-100 dark:bg-blue-50 px-2 py-1 rounded-full' : ''}`}
+							>
+								{' '}
+								{tab.label}
+							</span>
 							{activeTab === tab.id && (
-								<span className='absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 dark:bg-blue-400 rounded-t-full' />
+								<span className={`absolute bottom-0 left-0 w-full h-0.5 rounded-t-full ${isCollapsed ? '' : 'bg-white'}`} />
 							)}
 						</button>
 					))}
@@ -112,7 +126,7 @@ export default function ProductList() {
 						}}
 						className={`p-1.5 rounded-full transition-colors ${
 							isCollapsed
-								? 'text-blue-600 dark:text-blue-400 font-semibold drop-shadow-md hover:bg-gray-100 dark:hover:bg-gray-800 group-hover:text-gray-500 group-hover:font-normal group-hover:drop-shadow-none'
+								? 'text-gray-800 dark:text-white drop-shadow-md hover:bg-gray-100 dark:hover:bg-gray-800 group-hover:text-gray-500 group-hover:font-normal group-hover:drop-shadow-none'
 								: 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
 						}`}
 						aria-label={isCollapsed ? 'Expand' : 'Collapse'}
@@ -152,7 +166,7 @@ export default function ProductList() {
 									<p className='text-[10px] text-gray-500 line-clamp-2 leading-tight'>{product.description}</p>
 								</div>
 
-								<button className='absolute top-2 right-2 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-blue-700 z-10'>
+								<button className='absolute top-2.5 right-2.5 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-blue-700 z-10'>
 									<Plus size={14} />
 								</button>
 							</div>
