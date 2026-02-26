@@ -66,6 +66,21 @@ Follow these steps to run the project locally:
 - `src/data`: Static data for products.
 - `src/types`: TypeScript interfaces and types.
 
+## 💡 Approach & Design Decisions
+
+For this project, I chose a client-heavy approach using **React** and **Zustand** to handle the complex interactive state of the workspace designer. 
+
+- **State Management**: Zustand was selected over Redux or Context API for its simplicity and performance. The `persist` middleware ensures users don't lose their work on refresh, while custom logic handles the undo/redo history stack.
+- **Drag & Drop**: Instead of heavy libraries, I implemented custom mouse event handlers for the canvas interactions (drag, zoom, pan). This provides granular control over the user experience and performance.
+- **Styling**: Tailwind CSS allowed for rapid UI development with a consistent design system. The glassmorphism effect was a key design choice to give the app a modern, premium feel.
+
+### Future Improvements
+With more time, I would focus on:
+1.  **Backend Integration**: Adding a database (like PostgreSQL/Supabase) to save user designs permanently and allow sharing.
+2.  **Mobile Optimization**: Improving the touch interactions for the canvas on mobile devices.
+3.  **3D Visualization**: Integrating `react-three-fiber` to allow users to view their setup in 3D.
+4.  **Collision Detection**: Implementing smarter snapping and collision detection to prevent items from overlapping unrealistically.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
